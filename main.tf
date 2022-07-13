@@ -1,3 +1,7 @@
+locals {
+    cluster_name = "${var.environment}-cluster"
+}
+
 provider "aws" {
   region  = "${var.aws_region}"
 }
@@ -127,6 +131,13 @@ resource "aws_iam_role_policy" "app_role_policy" {
 }
 
 /*
+    ECS
+*/
+resource "aws_ecs_cluster" "cluster" {
+  name = local.cluster_name
+}
+
+/*
     EC2
 */
 data "aws_ami" "optimized_ecs_ami" {
@@ -154,7 +165,7 @@ data "template_file" "instance_user_data" {
   template = file("${path.module}/templates/instance_user_data.tpl")
 
   vars = {
-    ecs_cluster_name = "${var.environment}-cluster"
+    ecs_cluster_name = local.cluster_name
   }
 }
 
@@ -166,7 +177,7 @@ resource "aws_launch_configuration" "launch_configuration" {
   instance_type        = var.instance_type
   iam_instance_profile = aws_iam_instance_profile.instance_profile.name
 
-  associate_public_ip_address = false
+  associate_public_ip_address = true
 
   lifecycle {
     create_before_destroy = true
