@@ -194,6 +194,21 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   launch_configuration      = aws_launch_configuration.launch_configuration.name
 }
 
+resource "aws_autoscaling_policy" "autoscaling_group_policy" {
+  name                   = "${var.environment}-autoscaling-group-policy"
+  adjustment_type        = "ChangeInCapacity"
+  policy_type            = "TargetTrackingScaling"
+  autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
+  
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+
+    target_value = 75.0
+  }
+}
+
 resource "aws_lb" "load_balancer" {
   name               = "${var.environment}-lb"
   internal           = false
