@@ -12,102 +12,15 @@
                 "ecs:RegisterContainerInstance",
                 "ecs:StartTelemetrySession",
                 "ecs:UpdateContainerInstancesState",
-                "ecs:Submit*"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Action": [
-                "autoscaling:Describe*",
-                "cloudwatch:*",
-                "logs:*",
-                "sns:*",
-                "iam:GetPolicy",
-                "iam:GetPolicyVersion",
-                "iam:GetRole"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": "iam:CreateServiceLinkedRole",
-            "Resource": "arn:aws:iam::*:role/aws-service-role/events.amazonaws.com/AWSServiceRoleForCloudWatchEvents*",
-            "Condition": {
-                "StringLike": {
-                    "iam:AWSServiceName": "events.amazonaws.com"
-                }
-            }
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
+                "ecs:Submit*",
                 "ecr:GetAuthorizationToken",
                 "ecr:BatchCheckLayerAvailability",
                 "ecr:GetDownloadUrlForLayer",
-                "ecr:GetRepositoryPolicy",
-                "ecr:DescribeRepositories",
-                "ecr:ListImages",
-                "ecr:DescribeImages",
                 "ecr:BatchGetImage",
-                "ecr:GetLifecyclePolicy",
-                "ecr:GetLifecyclePolicyPreview",
-                "ecr:ListTagsForResource",
-                "ecr:DescribeImageScanFindings"
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
             ],
             "Resource": "*"
-        },
-        {
-            "Action": [
-                "secretsmanager:*",
-                "cloudformation:CreateChangeSet",
-                "cloudformation:DescribeChangeSet",
-                "cloudformation:DescribeStackResource",
-                "cloudformation:DescribeStacks",
-                "cloudformation:ExecuteChangeSet",
-                "ec2:DescribeSecurityGroups",
-                "ec2:DescribeSubnets",
-                "ec2:DescribeVpcs",
-                "kms:DescribeKey",
-                "kms:ListAliases",
-                "kms:ListKeys",
-                "lambda:ListFunctions",
-                "rds:DescribeDBClusters",
-                "rds:DescribeDBInstances",
-                "redshift:DescribeClusters",
-                "tag:GetResources"
-            ],
-            "Effect": "Allow",
-            "Resource": "*"
-        },
-        {
-            "Action": [
-                "lambda:AddPermission",
-                "lambda:CreateFunction",
-                "lambda:GetFunction",
-                "lambda:InvokeFunction",
-                "lambda:UpdateFunctionConfiguration"
-            ],
-            "Effect": "Allow",
-            "Resource": "arn:aws:lambda:*:*:function:SecretsManager*"
-        },
-        {
-            "Action": [
-                "serverlessrepo:CreateCloudFormationChangeSet",
-                "serverlessrepo:GetApplication"
-            ],
-            "Effect": "Allow",
-            "Resource": "arn:aws:serverlessrepo:*:*:applications/SecretsManager*"
-        },
-        {
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:s3:::awsserverlessrepo-changesets*",
-                "arn:aws:s3:::secrets-manager-rotation-apps-*/*"
-            ]
         }
     ]
 }

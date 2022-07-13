@@ -111,6 +111,25 @@ resource "aws_iam_role_policy" "instance_profile_policy" {
   policy = data.template_file.instance_profile_policy.rendered
 }
 
+data "template_file" "task_execution_role" {
+  template = file("${path.module}/policies/task_execution_role.json")
+}
+
+resource "aws_iam_role" "task_execution_role" {
+  name               = "${var.environment}-task-execution-role"
+  assume_role_policy = data.template_file.task_execution_role.rendered
+}
+
+data "template_file" "task_execution_role_policy" {
+  template = file("${path.module}/policies/task_execution_role_policy.json")
+}
+
+resource "aws_iam_role_policy" "task_execution_role_policy" {
+  name   = "${var.environment}-task-execution-role-policy"
+  role   = aws_iam_role.task_execution_role.name
+  policy = data.template_file.task_execution_role_policy.rendered
+}
+
 data "template_file" "app_role" {
   template = file("${path.module}/policies/app_role.json")
 }
