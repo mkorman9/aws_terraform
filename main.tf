@@ -264,7 +264,7 @@ resource "aws_lb_listener" "load_balancer_listener_80" {
     type = "fixed-response"
 
     fixed_response {
-      status_code  = "200"
+      status_code  = "404"
       content_type = "application/json"
       message_body = jsonencode({
         status = "error"
