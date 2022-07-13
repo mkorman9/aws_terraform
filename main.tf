@@ -2,6 +2,9 @@ provider "aws" {
   region  = "${var.aws_region}"
 }
 
+/*
+    VPC
+*/
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -77,6 +80,9 @@ resource "aws_security_group" "instance_sg" {
   }
 }
 
+/*
+    IAM
+*/
 data "template_file" "instance_profile" {
   template = file("${path.module}/policies/instance_profile.json")
 }
@@ -84,6 +90,11 @@ data "template_file" "instance_profile" {
 resource "aws_iam_role" "instance_profile" {
   name               = "${var.environment}-instance-profile"
   assume_role_policy = data.template_file.instance_profile.rendered
+}
+
+resource "aws_iam_instance_profile" "instance_profile" {
+  name = "${var.environment}-instance-profile"
+  role = aws_iam_role.instance_profile.name
 }
 
 data "template_file" "instance_profile_policy" {
@@ -113,4 +124,61 @@ resource "aws_iam_role_policy" "app_role_policy" {
   name   = "${var.environment}-app-role-policy"
   role   = aws_iam_role.app_role.name
   policy = data.template_file.app_role_policy.rendered
+}
+
+/*
+    EC2
+*/
+data "aws_ami" "optimized_ecs_ami" {
+  most_recent = true
+
+  filter {
+    name   = "name"
+    values = ["amzn-ami*amazon-ecs-optimized"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["591542846629"]  // AWS
+}
+
+data "template_file" "instance_user_data" {
+  template = file("${path.module}/templates/instance_user_data.tpl")
+
+  vars = {
+    ecs_cluster_name = "${var.environment}-cluster"
+  }
+}
+
+resource "aws_launch_configuration" "launch_configuration" {
+  security_groups = [aws_security_group.instance_sg.id]
+  image_id        = data.aws_ami.optimized_ecs_ami.id
+
+  user_data            = data.template_file.instance_user_data.rendered
+  instance_type        = var.instance_type
+  iam_instance_profile = aws_iam_instance_profile.instance_profile.name
+
+  associate_public_ip_address = false
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_autoscaling_group" "autoscaling_group" {
+  name                      = "${var.environment}-autoscaling-group"
+  vpc_zone_identifier       = module.vpc.public_subnets
+  min_size                  = var.min_instances
+  max_size                  = var.max_instances
+  desired_capacity          = var.desired_instances
+  health_check_grace_period = 300
+  launch_configuration      = aws_launch_configuration.launch_configuration.name
 }
