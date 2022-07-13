@@ -2,10 +2,6 @@ locals {
     cluster_name = "${var.environment}-cluster"
 }
 
-provider "aws" {
-  region  = "${var.aws_region}"
-}
-
 /*
     VPC
 */
