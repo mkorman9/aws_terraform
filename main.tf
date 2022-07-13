@@ -76,3 +76,41 @@ resource "aws_security_group" "instance_sg" {
     Environment = var.environment
   }
 }
+
+data "template_file" "instance_profile" {
+  template = file("${path.module}/policies/instance_profile.json")
+}
+
+resource "aws_iam_role" "instance_profile" {
+  name               = "${var.environment}-instance-profile"
+  assume_role_policy = data.template_file.instance_profile.rendered
+}
+
+data "template_file" "instance_profile_policy" {
+  template = file("${path.module}/policies/instance_profile_policy.json")
+}
+
+resource "aws_iam_role_policy" "instance_profile_policy" {
+  name   = "${var.environment}-instance-profile-policy"
+  role   = aws_iam_role.instance_profile.name
+  policy = data.template_file.instance_profile_policy.rendered
+}
+
+data "template_file" "app_role" {
+  template = file("${path.module}/policies/app_role.json")
+}
+
+resource "aws_iam_role" "app_role" {
+  name               = "${var.environment}-app-role"
+  assume_role_policy = data.template_file.app_role.rendered
+}
+
+data "template_file" "app_role_policy" {
+  template = file("${path.module}/policies/app_role_policy.json")
+}
+
+resource "aws_iam_role_policy" "app_role_policy" {
+  name   = "${var.environment}-app-role-policy"
+  role   = aws_iam_role.app_role.name
+  policy = data.template_file.app_role_policy.rendered
+}
