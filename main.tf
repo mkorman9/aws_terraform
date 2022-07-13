@@ -193,3 +193,15 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   health_check_grace_period = 300
   launch_configuration      = aws_launch_configuration.launch_configuration.name
 }
+
+resource "aws_lb" "load_balancer" {
+  name               = "${var.environment}-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.load_balancer_sg.id]
+  subnets            = module.vpc.public_subnets
+
+  tags = {
+    Environment = var.environment
+  }
+}
