@@ -254,3 +254,22 @@ resource "aws_lb" "load_balancer" {
     Environment = var.environment
   }
 }
+
+resource "aws_lb_listener" "load_balancer_listener_80" {
+  load_balancer_arn = aws_lb.load_balancer.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      status_code  = "200"
+      content_type = "application/json"
+      message_body = jsonencode({
+        status = "error"
+        message = "not found"
+      })
+    }
+  }
+}
