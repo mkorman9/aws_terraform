@@ -6,8 +6,15 @@
 
 # Usage
 
+Create infrastructure:
 ```
 terraform apply -var aws_region=eu-central-1 -var environment=eu1
+```
+
+Deploy service on top of that:
+```
+cd service
+terraform apply -var environment=eu1
 ```
 
 # Service deployment
@@ -33,7 +40,7 @@ The following steps cover the deployment process for - https://github.com/mkorma
 - Go to `AWS Secrets Manager` and create new secret
 - Choose `Other type of secret` and add all fields manually (for example username and password to RDS)
 - You will be given the root ARN of the secret, such as `arn:aws:secretsmanager:eu-central-1:778189968080:secret:db-credentials-63edbZ`
-- In order to select a specific field of the secret, use the following syntax `arn:aws:secretsmanager:eu-central-1:778189968080:secret:db-credentials-63edbZ:password::` (append field name, `password` in this example and two colons) 
+- In order to select a specific field of the secret, use the following syntax `arn:aws:secretsmanager:eu-central-1:778189968080:secret:db-credentials-63edbZ:password::` (append field name, `password` in this example and two colons)
 
 ## Create ECS Task Definition
 

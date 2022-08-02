@@ -44,7 +44,7 @@ resource "aws_security_group" "load_balancer_sg" {
     protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -67,7 +67,7 @@ resource "aws_security_group" "instance_sg" {
     protocol  = "-1"
     security_groups = [aws_security_group.load_balancer_sg.id]
   }
-  
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -107,25 +107,6 @@ resource "aws_iam_role_policy" "instance_profile_policy" {
   policy = data.template_file.instance_profile_policy.rendered
 }
 
-data "template_file" "task_execution_role" {
-  template = file("${path.module}/policies/task_execution_role.json")
-}
-
-resource "aws_iam_role" "task_execution_role" {
-  name               = "${var.environment}-task-execution-role"
-  assume_role_policy = data.template_file.task_execution_role.rendered
-}
-
-data "template_file" "task_execution_role_policy" {
-  template = file("${path.module}/policies/task_execution_role_policy.json")
-}
-
-resource "aws_iam_role_policy" "task_execution_role_policy" {
-  name   = "${var.environment}-task-execution-role-policy"
-  role   = aws_iam_role.task_execution_role.name
-  policy = data.template_file.task_execution_role_policy.rendered
-}
-
 data "template_file" "ecs_role" {
   template = file("${path.module}/policies/ecs_role.json")
 }
@@ -145,23 +126,23 @@ resource "aws_iam_role_policy" "ecs_role_policy" {
   policy = data.template_file.ecs_role_policy.rendered
 }
 
-data "template_file" "app_role" {
-  template = file("${path.module}/policies/app_role.json")
+data "template_file" "task_execution_role" {
+  template = file("${path.module}/policies/task_execution_role.json")
 }
 
-resource "aws_iam_role" "app_role" {
-  name               = "${var.environment}-app-role"
-  assume_role_policy = data.template_file.app_role.rendered
+resource "aws_iam_role" "task_execution_role" {
+  name               = "${var.environment}-task-execution-role"
+  assume_role_policy = data.template_file.task_execution_role.rendered
 }
 
-data "template_file" "app_role_policy" {
-  template = file("${path.module}/policies/app_role_policy.json")
+data "template_file" "task_execution_role_policy" {
+  template = file("${path.module}/policies/task_execution_role_policy.json")
 }
 
-resource "aws_iam_role_policy" "app_role_policy" {
-  name   = "${var.environment}-app-role-policy"
-  role   = aws_iam_role.app_role.name
-  policy = data.template_file.app_role_policy.rendered
+resource "aws_iam_role_policy" "task_execution_role_policy" {
+  name   = "${var.environment}-task-execution-role-policy"
+  role   = aws_iam_role.task_execution_role.name
+  policy = data.template_file.task_execution_role_policy.rendered
 }
 
 /*
@@ -233,7 +214,7 @@ resource "aws_autoscaling_policy" "autoscaling_group_policy" {
   adjustment_type        = "ChangeInCapacity"
   policy_type            = "TargetTrackingScaling"
   autoscaling_group_name = aws_autoscaling_group.autoscaling_group.name
-  
+
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
