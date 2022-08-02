@@ -8,13 +8,13 @@
 
 Create infrastructure:
 ```
-terraform apply -var aws_region=eu-central-1 -var environment=eu1
+terraform apply -var environment=eu1 -var aws_region=eu-central-1
 ```
 
 Deploy service on top of that:
 ```
 cd service
-terraform apply -var environment=eu1
+terraform apply -var environment=eu1 -var aws_region=eu-central-1
 ```
 
 # Service deployment
