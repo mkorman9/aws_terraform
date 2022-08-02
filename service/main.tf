@@ -122,12 +122,12 @@ resource "aws_secretsmanager_secret" "db_credentials" {
 resource "aws_secretsmanager_secret_version" "db_credentials" {
   secret_id     = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
-        username = aws_db_instance.db.username
-        password = aws_db_instance.db.password
-        database = aws_db_instance.db.db_name
-        host = aws_db_instance.db.address
-        port = aws_db_instance.db.port
-    })
+    username = aws_db_instance.db.username
+    password = aws_db_instance.db.password
+    database = aws_db_instance.db.db_name
+    host = aws_db_instance.db.address
+    port = aws_db_instance.db.port
+  })
 }
 
 /*
@@ -195,51 +195,51 @@ resource "aws_ecs_task_definition" "task_definition" {
       ]
 
       logConfiguration = {
-          logDriver = "awslogs"
-          options = {
-            awslogs-group = aws_cloudwatch_log_group.log_group.name
-            awslogs-region = var.aws_region
-          }
+        logDriver = "awslogs"
+        options = {
+          awslogs-group = aws_cloudwatch_log_group.log_group.name
+          awslogs-region = var.aws_region
+        }
       }
 
       healthCheck = {
-          command = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-          interval = 30
-          timeout = 5
-          retries = 3
-          startPeriod = 30
+        command = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+        interval = 30
+        timeout = 5
+        retries = 3
+        startPeriod = 30
       }
 
       environment = [
         {
-            name = "ENVIRONMENT_NAME"
-            value = var.environment
-        },
-                {
-            name = "PROFILE"
-            value = var.profile
-        },
-                {
-            name = "SERVER_HOST"
-            value = "0.0.0.0"
+         name = "ENVIRONMENT_NAME"
+         value = var.environment
         },
         {
-            name = "SERVER_PORT"
-            value = "8080"
+          name = "PROFILE"
+          value = var.profile
         },
         {
-            name = "DB_URI"
-            value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
+          name = "SERVER_HOST"
+          value = "0.0.0.0"
+        },
+        {
+          name = "SERVER_PORT"
+          value = "8080"
+        },
+        {
+          name = "DB_URI"
+          value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
         }
       ]
       secrets = [
         {
-            name = "DB_USER"
-            valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
+          name = "DB_USER"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
         },
         {
-            name = "DB_PASSWORD"
-            valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
+          name = "DB_PASSWORD"
+          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
         }
       ]
     }
