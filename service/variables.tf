@@ -37,3 +37,9 @@ variable "cpu" {
   type        = number
   default     = 1024
 }
+
+variable "instances_count" {
+  description = "Number of instances of the app to deploy across the cluster (by default: 1)"
+  type        = number
+  default     = 1
+}

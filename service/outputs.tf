@@ -5,3 +5,7 @@ output "app_role" {
 output "db" {
   value = aws_db_instance.db.arn
 }
+
+output "service" {
+  value = aws_ecs_service.service.id
+}

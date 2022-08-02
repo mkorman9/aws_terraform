@@ -127,7 +127,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
         database = aws_db_instance.db.db_name
         host = aws_db_instance.db.address
         port = aws_db_instance.db.port
-      })
+    })
 }
 
 /*
@@ -154,7 +154,7 @@ resource "aws_lb_listener_rule" "listener_rule_80" {
 
   condition {
     path_pattern {
-      values = ["/app/*"]
+      values = ["/api/*"]
     }
   }
 }
@@ -244,4 +244,22 @@ resource "aws_ecs_task_definition" "task_definition" {
       ]
     }
   ])
+}
+
+resource "aws_ecs_service" "service" {
+  name            = "${var.environment}-app"
+  cluster         = data.aws_ecs_cluster.cluster.id
+  task_definition = aws_ecs_task_definition.task_definition.arn
+  desired_count   = var.instances_count
+  iam_role        = data.aws_iam_role.ecs_role.arn
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.target_group.id
+    container_name   = "app"
+    container_port   = 8080
+  }
+
+  tags = {
+    Environment = var.environment
+  }
 }
