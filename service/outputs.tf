@@ -9,3 +9,7 @@ output "db" {
 output "service" {
   value = aws_ecs_service.service.id
 }
+
+output "endpoint_http" {
+  value = "http://${data.aws_lb.load_balancer.dns_name}/api/"
+}
