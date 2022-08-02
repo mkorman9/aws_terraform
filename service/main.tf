@@ -20,6 +20,11 @@ data "aws_lb" "load_balancer" {
   }
 }
 
+data "aws_lb_listener" "load_balancer_listener_80" {
+  load_balancer_arn = data.aws_lb.load_balancer.arn
+  port = 80
+}
+
 data "aws_iam_role" "ecs_role" {
   name = "${var.environment}-ecs-role"
 }
@@ -123,4 +128,120 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
         host = aws_db_instance.db.address
         port = aws_db_instance.db.port
       })
+}
+
+/*
+  EC2
+*/
+resource "aws_lb_target_group" "target_group" {
+  name     = "${var.environment}-app-target-group"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.vpc.id
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_lb_listener_rule" "listener_rule_80" {
+  listener_arn = data.aws_lb_listener.load_balancer_listener_80.arn
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/app/*"]
+    }
+  }
+}
+
+/*
+    CloudWatch
+*/
+resource "aws_cloudwatch_log_group" "log_group" {
+  name = "${var.environment}-logs/app"
+}
+
+/*
+    ECS
+*/
+resource "aws_ecs_task_definition" "task_definition" {
+  family                   = "${var.environment}-app"
+  requires_compatibilities = ["EC2"]
+  network_mode             = "bridge"
+  cpu                      = var.cpu
+  memory                   = var.memory
+
+  task_role_arn = aws_iam_role.app_role.arn
+  execution_role_arn = data.aws_iam_role.task_execution_role.arn
+
+  container_definitions = jsonencode([
+    {
+      name = "app"
+      image = var.image
+      essential = true
+      cpu = var.cpu
+      memory = var.memory
+
+      portMappings = [
+        {
+          containerPort = 8080
+          hostPort = 0
+        }
+      ]
+
+      logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            awslogs-group = aws_cloudwatch_log_group.log_group.name
+            awslogs-region = var.aws_region
+          }
+      }
+
+      healthCheck = {
+          command = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+          interval = 30
+          timeout = 5
+          retries = 3
+          startPeriod = 30
+      }
+
+      environment = [
+        {
+            name = "ENVIRONMENT_NAME"
+            value = var.environment
+        },
+                {
+            name = "PROFILE"
+            value = var.profile
+        },
+                {
+            name = "SERVER_HOST"
+            value = "0.0.0.0"
+        },
+                {
+            name = "SERVER_PORT"
+            value = "8080"
+        },
+        {
+            name = "DB_URI"
+            value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
+        }
+      ]
+      secrets = [
+        {
+            name = "DB_USER"
+            valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
+        },
+        {
+            name = "DB_PASSWORD"
+            valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
+        }
+      ]
+    }
+  ])
 }
