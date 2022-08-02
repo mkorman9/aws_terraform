@@ -223,7 +223,7 @@ resource "aws_ecs_task_definition" "task_definition" {
             name = "SERVER_HOST"
             value = "0.0.0.0"
         },
-                {
+        {
             name = "SERVER_PORT"
             value = "8080"
         },
