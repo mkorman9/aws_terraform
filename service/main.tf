@@ -173,7 +173,6 @@ resource "aws_ecs_task_definition" "task_definition" {
   family                   = "${var.environment}-app"
   requires_compatibilities = ["EC2"]
   network_mode             = "bridge"
-  cpu                      = var.cpu
   memory                   = var.memory
 
   task_role_arn = aws_iam_role.app_role.arn
@@ -184,7 +183,6 @@ resource "aws_ecs_task_definition" "task_definition" {
       name = "app"
       image = var.image
       essential = true
-      cpu = var.cpu
       memory = var.memory
 
       portMappings = [

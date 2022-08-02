@@ -27,15 +27,9 @@ variable "image" {
 }
 
 variable "memory" {
-  description = "Amount of memory to assign to app container (default: 768 MiB)"
+  description = "Amount of memory to assign to app container (default: 300 MiB)"
   type        = number
-  default     = 768
-}
-
-variable "cpu" {
-  description = "Amount of CPU to assign to app container (default: 1024)"
-  type        = number
-  default     = 1024
+  default     = 300
 }
 
 variable "instances_count" {
