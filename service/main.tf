@@ -37,8 +37,8 @@ data "aws_iam_role" "task_execution_role" {
   name = "${var.environment}-task-execution-role"
 }
 
-data "aws_security_group" "instance_sg" {
-  name = "${var.environment}-instance-sg"
+data "aws_security_group" "task_sg" {
+  name = "${var.environment}-task-sg"
 }
 
 /*
@@ -124,7 +124,7 @@ resource "aws_db_instance" "db" {
     Secrets Manager
 */
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name = "${var.environment}-db-credentials-secret"
+  name = "${var.environment}-secret-db-credentials"
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials" {
@@ -364,7 +364,7 @@ resource "aws_ecs_service" "service" {
 
   network_configuration {
     subnets = data.aws_subnets.subnets.ids
-    security_groups = [data.aws_security_group.instance_sg.id]
+    security_groups = [data.aws_security_group.task_sg.id]
     assign_public_ip = false
   }
 
