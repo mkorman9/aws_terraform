@@ -35,5 +35,5 @@ variable "desired_instances" {
 variable "instance_max_cpu" {
   description = "Threshold for max CPU usage"
   type        = number
-  default     = 75
+  default     = 85
 }
