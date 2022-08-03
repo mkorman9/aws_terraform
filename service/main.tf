@@ -10,8 +10,11 @@ data "aws_vpc" "vpc" {
   }
 }
 
-data "aws_subnet_ids" "subnets" {
-  vpc_id = data.aws_vpc.vpc.id
+data "aws_subnets" "subnets" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.vpc.id]
+  }
 }
 
 data "aws_ecs_cluster" "cluster" {
@@ -70,7 +73,7 @@ resource "random_password" "db_password" {
 
 resource "aws_db_subnet_group" "db_subnet_group" {
   name       =  "${var.environment}-db-subnet-group"
-  subnet_ids = data.aws_subnet_ids.subnets.ids
+  subnet_ids = data.aws_subnets.subnets.ids
 
   tags = {
     Environment = var.environment
