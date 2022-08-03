@@ -107,25 +107,6 @@ resource "aws_iam_role_policy" "instance_profile_policy" {
   policy = data.template_file.instance_profile_policy.rendered
 }
 
-data "template_file" "ecs_role" {
-  template = file("${path.module}/policies/ecs_role.json")
-}
-
-resource "aws_iam_role" "ecs_role" {
-  name               = "${var.environment}-ecs-role"
-  assume_role_policy = data.template_file.ecs_role.rendered
-}
-
-data "template_file" "ecs_role_policy" {
-  template = file("${path.module}/policies/ecs_role_policy.json")
-}
-
-resource "aws_iam_role_policy" "ecs_role_policy" {
-  name   = "${var.environment}-ecs-role-policy"
-  role   = aws_iam_role.ecs_role.name
-  policy = data.template_file.ecs_role_policy.rendered
-}
-
 data "template_file" "task_execution_role" {
   template = file("${path.module}/policies/task_execution_role.json")
 }

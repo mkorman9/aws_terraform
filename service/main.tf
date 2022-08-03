@@ -33,12 +33,12 @@ data "aws_lb_listener" "load_balancer_listener_80" {
   port = 80
 }
 
-data "aws_iam_role" "ecs_role" {
-  name = "${var.environment}-ecs-role"
-}
-
 data "aws_iam_role" "task_execution_role" {
   name = "${var.environment}-task-execution-role"
+}
+
+data "aws_security_group" "instance_sg" {
+  name = "${var.environment}-instance-sg"
 }
 
 /*
@@ -67,8 +67,8 @@ resource "aws_iam_role_policy" "app_role_policy" {
     RDS
 */
 resource "random_password" "db_password" {
-  length  = 16
-  special = true
+  length  = 32
+  special = false
 }
 
 resource "aws_db_subnet_group" "db_subnet_group" {
@@ -124,7 +124,7 @@ resource "aws_db_instance" "db" {
     Secrets Manager
 */
 resource "aws_secretsmanager_secret" "db_credentials" {
-  name = "${var.environment}-db-credentials"
+  name = "${var.environment}-db-credentials-secret"
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials" {
@@ -142,10 +142,11 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
   EC2
 */
 resource "aws_lb_target_group" "target_group" {
-  name     = "${var.environment}-app-target-group"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.vpc.id
+  name        = "${var.environment}-app-target-group"
+  port        = 80
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = data.aws_vpc.vpc.id
 
   tags = {
     Environment = var.environment
@@ -171,7 +172,7 @@ resource "aws_lb_listener_rule" "listener_rule_80" {
     CloudWatch
 */
 resource "aws_cloudwatch_log_group" "log_group" {
-  name = "${var.environment}-logs/app"
+  name = "/${var.environment}-logs/app"
 }
 
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
@@ -270,7 +271,7 @@ resource "aws_appautoscaling_target" "scale_target" {
 resource "aws_ecs_task_definition" "task_definition" {
   family                   = "${var.environment}-app"
   requires_compatibilities = ["EC2"]
-  network_mode             = "bridge"
+  network_mode             = "awsvpc"
   memory                   = var.memory
 
   task_role_arn = aws_iam_role.app_role.arn
@@ -286,7 +287,6 @@ resource "aws_ecs_task_definition" "task_definition" {
       portMappings = [
         {
           containerPort = 8080
-          hostPort = 0
         }
       ]
 
@@ -351,8 +351,6 @@ resource "aws_ecs_service" "service" {
   desired_count                      = var.desired_instances
   deployment_minimum_healthy_percent = 50
 
-  iam_role = data.aws_iam_role.ecs_role.arn
-
   ordered_placement_strategy {
     type  = "spread"
     field = "instanceId"
@@ -362,6 +360,12 @@ resource "aws_ecs_service" "service" {
     target_group_arn = aws_lb_target_group.target_group.id
     container_name   = "app"
     container_port   = 8080
+  }
+
+  network_configuration {
+    subnets = data.aws_subnets.subnets.ids
+    security_groups = [data.aws_security_group.instance_sg.id]
+    assign_public_ip = false
   }
 
   tags = {
