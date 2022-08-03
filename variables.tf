@@ -25,8 +25,15 @@ variable "max_instances" {
   type        = number
   default     = 1
 }
+
 variable "desired_instances" {
   description = "The desired instance count in the cluster"
   type        = number
   default     = 1
+}
+
+variable "instance_max_cpu" {
+  description = "Threshold for max CPU usage"
+  type        = number
+  default     = 75
 }

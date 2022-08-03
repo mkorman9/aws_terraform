@@ -1,3 +1,8 @@
+locals {
+    cluster_name = "${var.environment}-cluster"
+    service_name = "${var.environment}-app"
+}
+
 data "aws_vpc" "vpc" {
   filter {
     name = "tag:Environment"
@@ -10,7 +15,7 @@ data "aws_subnet_ids" "subnets" {
 }
 
 data "aws_ecs_cluster" "cluster" {
-  cluster_name = "${var.environment}-cluster"
+  cluster_name = local.cluster_name
 }
 
 data "aws_lb" "load_balancer" {
@@ -166,6 +171,96 @@ resource "aws_cloudwatch_log_group" "log_group" {
   name = "${var.environment}-logs/app"
 }
 
+resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+  alarm_name          = "${var.environment}-app-cpu-high"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = var.autoscaling_max_cpu_eval_period
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = var.autoscaling_max_cpu_period
+  statistic           = "Maximum"
+  threshold           = var.autoscaling_max_cpu
+
+  dimensions = {
+    ClusterName = local.cluster_name
+    ServiceName = local.service_name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.scale_up_policy.arn]
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+  alarm_name          = "${var.environment}-app-cpu-low"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  evaluation_periods  = var.autoscaling_min_cpu_eval_period
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/ECS"
+  period              = var.autoscaling_min_cpu_period
+  statistic           = "Average"
+  threshold           = var.autoscaling_min_cpu
+
+  dimensions = {
+    ClusterName = local.cluster_name
+    ServiceName = local.service_name
+  }
+
+  alarm_actions = [aws_appautoscaling_policy.scale_down_policy.arn]
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_appautoscaling_policy" "scale_up_policy" {
+  name               = "${var.environment}-app-scale-up-policy"
+  depends_on         = [aws_appautoscaling_target.scale_target]
+  service_namespace  = "ecs"
+  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Maximum"
+
+    step_adjustment {
+      metric_interval_lower_bound = 0
+      scaling_adjustment          = 1
+    }
+  }
+}
+
+resource "aws_appautoscaling_policy" "scale_down_policy" {
+  name               = "${var.environment}-app-scale-down-policy"
+  depends_on         = [aws_appautoscaling_target.scale_target]
+  service_namespace  = "ecs"
+  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+
+  step_scaling_policy_configuration {
+    adjustment_type         = "ChangeInCapacity"
+    cooldown                = 60
+    metric_aggregation_type = "Maximum"
+
+    step_adjustment {
+      metric_interval_upper_bound = 0
+      scaling_adjustment          = -1
+    }
+  }
+}
+
+resource "aws_appautoscaling_target" "scale_target" {
+  service_namespace  = "ecs"
+  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  min_capacity       = var.min_instances
+  max_capacity       = var.max_instances
+}
+
 /*
     ECS
 */
@@ -245,7 +340,7 @@ resource "aws_ecs_task_definition" "task_definition" {
 }
 
 resource "aws_ecs_service" "service" {
-  name            = "${var.environment}-app"
+  name            = local.service_name
   cluster         = data.aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.task_definition.arn
   launch_type     = "EC2"

@@ -220,7 +220,7 @@ resource "aws_autoscaling_policy" "autoscaling_group_policy" {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
 
-    target_value = 75.0
+    target_value = var.instance_max_cpu
   }
 }
 
