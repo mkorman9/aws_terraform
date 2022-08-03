@@ -255,6 +255,11 @@ resource "aws_ecs_service" "service" {
 
   iam_role = data.aws_iam_role.ecs_role.arn
 
+  ordered_placement_strategy {
+    type  = "spread"
+    field = "instanceId"
+  }
+
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.id
     container_name   = "app"
