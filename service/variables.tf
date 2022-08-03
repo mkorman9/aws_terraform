@@ -32,7 +32,7 @@ variable "memory" {
   default     = 300
 }
 
-variable "instances_count" {
+variable "desired_instances" {
   description = "Number of instances of the app to deploy across the cluster (by default: 1)"
   type        = number
   default     = 1

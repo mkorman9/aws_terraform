@@ -248,8 +248,12 @@ resource "aws_ecs_service" "service" {
   name            = "${var.environment}-app"
   cluster         = data.aws_ecs_cluster.cluster.id
   task_definition = aws_ecs_task_definition.task_definition.arn
-  desired_count   = var.instances_count
-  iam_role        = data.aws_iam_role.ecs_role.arn
+  launch_type     = "EC2"
+
+  desired_count                      = var.desired_instances
+  deployment_minimum_healthy_percent = 50
+
+  iam_role = data.aws_iam_role.ecs_role.arn
 
   load_balancer {
     target_group_arn = aws_lb_target_group.target_group.id
