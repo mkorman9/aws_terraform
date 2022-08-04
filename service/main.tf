@@ -106,7 +106,7 @@ resource "aws_security_group" "db_sg" {
 resource "aws_db_instance" "db" {
   allocated_storage      = 10
   engine                 = "postgres"
-  engine_version         = "13.3"
+  engine_version         = "13.4"
   instance_class         = var.db_instance_class
   username               = "postgres"
   password               = random_password.db_password.result
@@ -147,6 +147,13 @@ resource "aws_lb_target_group" "target_group" {
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = data.aws_vpc.vpc.id
+
+  health_check {
+    enabled  = true
+    protocol = "HTTP"
+    path     = "/health"
+    matcher  = "200"
+  }
 
   tags = {
     Environment = var.environment
@@ -274,15 +281,15 @@ resource "aws_ecs_task_definition" "task_definition" {
   network_mode             = "awsvpc"
   memory                   = var.memory
 
-  task_role_arn = aws_iam_role.app_role.arn
+  task_role_arn      = aws_iam_role.app_role.arn
   execution_role_arn = data.aws_iam_role.task_execution_role.arn
 
   container_definitions = jsonencode([
     {
-      name = "app"
-      image = var.image
+      name      = "app"
+      image     = var.image
       essential = true
-      memory = var.memory
+      memory    = var.memory
 
       portMappings = [
         {
@@ -293,48 +300,48 @@ resource "aws_ecs_task_definition" "task_definition" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group = aws_cloudwatch_log_group.log_group.name
+          awslogs-group  = aws_cloudwatch_log_group.log_group.name
           awslogs-region = var.aws_region
         }
       }
 
       healthCheck = {
-        command = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-        interval = 30
-        timeout = 5
-        retries = 3
+        command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
         startPeriod = 30
       }
 
       environment = [
         {
-         name = "ENVIRONMENT_NAME"
+         name  = "ENVIRONMENT_NAME"
          value = var.environment
         },
         {
-          name = "PROFILE"
+          name  = "PROFILE"
           value = var.profile
         },
         {
-          name = "SERVER_HOST"
+          name  = "SERVER_HOST"
           value = "0.0.0.0"
         },
         {
-          name = "SERVER_PORT"
+          name  = "SERVER_PORT"
           value = "8080"
         },
         {
-          name = "DB_URI"
+          name  = "DB_URI"
           value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
         }
       ]
       secrets = [
         {
-          name = "DB_USER"
+          name      = "DB_USER"
           valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
         },
         {
-          name = "DB_PASSWORD"
+          name      = "DB_PASSWORD"
           valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
         }
       ]
@@ -363,8 +370,8 @@ resource "aws_ecs_service" "service" {
   }
 
   network_configuration {
-    subnets = data.aws_subnets.subnets.ids
-    security_groups = [data.aws_security_group.task_sg.id]
+    subnets          = data.aws_subnets.subnets.ids
+    security_groups  = [data.aws_security_group.task_sg.id]
     assign_public_ip = false
   }
 
