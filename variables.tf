@@ -8,6 +8,12 @@ variable "aws_region" {
   type        = string
 }
 
+variable "domain" {
+  description = "Domain name to generate certificate for"
+  type        = string
+}
+
+
 variable "instance_type" {
   description = "Type of instance inside Autoscaling group. By default: t2.micro"
   type        = string

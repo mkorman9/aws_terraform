@@ -151,6 +151,22 @@ resource "aws_ecs_cluster" "cluster" {
 }
 
 /*
+  ACM
+*/
+resource "aws_acm_certificate" "cert" {
+  domain_name       = var.domain
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+/*
     EC2
 */
 data "aws_ami" "optimized_ecs_ami" {
@@ -238,6 +254,24 @@ resource "aws_lb_listener" "load_balancer_listener_80" {
   load_balancer_arn = aws_lb.load_balancer.arn
   port              = "80"
   protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      status_code  = "HTTP_301"
+      protocol     = "HTTPS"
+      port         = "443"
+    }
+  }
+}
+
+resource "aws_lb_listener" "load_balancer_listener_443" {
+  load_balancer_arn = aws_lb.load_balancer.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.cert.arn
 
   default_action {
     type = "fixed-response"

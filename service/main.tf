@@ -28,9 +28,9 @@ data "aws_lb" "load_balancer" {
   }
 }
 
-data "aws_lb_listener" "load_balancer_listener_80" {
+data "aws_lb_listener" "load_balancer_listener_443" {
   load_balancer_arn = data.aws_lb.load_balancer.arn
-  port = 80
+  port = 443
 }
 
 data "aws_iam_role" "task_execution_role" {
@@ -160,8 +160,8 @@ resource "aws_lb_target_group" "target_group" {
   }
 }
 
-resource "aws_lb_listener_rule" "listener_rule_80" {
-  listener_arn = data.aws_lb_listener.load_balancer_listener_80.arn
+resource "aws_lb_listener_rule" "listener_rule_443" {
+  listener_arn = data.aws_lb_listener.load_balancer_listener_443.arn
 
   action {
     type             = "forward"
