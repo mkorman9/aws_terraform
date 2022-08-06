@@ -350,10 +350,11 @@ resource "aws_ecs_task_definition" "task_definition" {
 }
 
 resource "aws_ecs_service" "service" {
-  name            = local.service_name
-  cluster         = data.aws_ecs_cluster.cluster.id
-  task_definition = aws_ecs_task_definition.task_definition.arn
-  launch_type     = "EC2"
+  name                = local.service_name
+  cluster             = data.aws_ecs_cluster.cluster.id
+  task_definition     = aws_ecs_task_definition.task_definition.arn
+  launch_type         = "EC2"
+  scheduling_strategy = "REPLICA"
 
   desired_count                      = var.desired_instances
   deployment_minimum_healthy_percent = 50
