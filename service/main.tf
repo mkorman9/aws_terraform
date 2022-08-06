@@ -185,12 +185,12 @@ resource "aws_cloudwatch_log_group" "log_group" {
 resource "aws_cloudwatch_metric_alarm" "cpu_high" {
   alarm_name          = "${var.environment}-app-cpu-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
-  evaluation_periods  = var.autoscaling_max_cpu_eval_period
+  evaluation_periods  = "3"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
-  period              = var.autoscaling_max_cpu_period
+  period              = "60"
   statistic           = "Maximum"
-  threshold           = var.autoscaling_max_cpu
+  threshold           = "75"
 
   dimensions = {
     ClusterName = local.cluster_name
@@ -207,12 +207,12 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 resource "aws_cloudwatch_metric_alarm" "cpu_low" {
   alarm_name          = "${var.environment}-app-cpu-low"
   comparison_operator = "LessThanOrEqualToThreshold"
-  evaluation_periods  = var.autoscaling_min_cpu_eval_period
+  evaluation_periods  = "3"
   metric_name         = "CPUUtilization"
   namespace           = "AWS/ECS"
-  period              = var.autoscaling_min_cpu_period
+  period              = "60"
   statistic           = "Average"
-  threshold           = var.autoscaling_min_cpu
+  threshold           = "10"
 
   dimensions = {
     ClusterName = local.cluster_name

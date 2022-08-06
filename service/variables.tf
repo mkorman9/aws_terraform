@@ -49,38 +49,3 @@ variable "max_instances" {
   type        = number
   default     = 1
 }
-
-variable "autoscaling_max_cpu" {
-  description = "Threshold for max CPU usage"
-  type        = string
-  default     = "75"
-}
-
-variable "autoscaling_min_cpu" {
-  description = "Threshold for min CPU usage"
-  type        = string
-  default     = "10"
-}
-
-variable "autoscaling_max_cpu_eval_period" {
-  description = "The number of periods over which data is compared to the specified threshold for max cpu metric alarm"
-  type        = string
-  default     = "3"
-}
-
-variable "autoscaling_min_cpu_eval_period" {
-  description = "The number of periods over which data is compared to the specified threshold for min cpu metric alarm"
-  type        = string
-  default     = "3"
-}
-
-variable "autoscaling_max_cpu_period" {
-  description = "The period in seconds over which the specified statistic is applied for max cpu metric alarm"
-  type        = string
-  default     = "60"
-}
-variable "autoscaling_min_cpu_period" {
-  description = "The period in seconds over which the specified statistic is applied for min cpu metric alarm"
-  type        = string
-  default     = "60"
-}
