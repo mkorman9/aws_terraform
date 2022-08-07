@@ -331,6 +331,10 @@ resource "aws_ecs_task_definition" "task_definition" {
           value = "8080"
         },
         {
+          name = "SERVER_SECURITY_HEADERS",
+          value = "true"
+        },
+        {
           name  = "DB_URI"
           value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
         }
