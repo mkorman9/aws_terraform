@@ -316,7 +316,6 @@ resource "aws_ecs_task_definition" "app_task_definition" {
       name      = "app"
       image     = var.app_image
       essential = true
-      memory    = 300
 
       portMappings = [
         {
