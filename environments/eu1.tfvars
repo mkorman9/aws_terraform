@@ -2,7 +2,7 @@ environment = "eu1"
 profile     = "prd"
 aws_region  = "eu-central-1"
 
-instance_type     ="t2.micro"
+instance_type     = "t2.micro"
 min_instances     = 1
 max_instances     = 1
 desired_instances = 1
