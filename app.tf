@@ -410,6 +410,7 @@ resource "aws_ecs_service" "app_service" {
 
   desired_count                      = var.app_desired_instances
   deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
 
   ordered_placement_strategy {
     type  = "spread"
