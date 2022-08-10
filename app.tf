@@ -65,14 +65,19 @@ resource "aws_security_group" "app_db_sg" {
 }
 
 resource "aws_db_instance" "app_db" {
-  allocated_storage      = 10
-  engine                 = "postgres"
-  engine_version         = "13.4"
-  instance_class         = var.app_db_instance_class
-  username               = "postgres"
-  password               = random_password.app_db_password.result
-  db_name                = "postgres"
-  skip_final_snapshot    = true
+  identifier          = "${var.environment}-app-db"
+  allocated_storage   = 10
+  engine              = "postgres"
+  engine_version      = "13.4"
+  instance_class      = var.app_db_instance_class
+  skip_final_snapshot = true
+  publicly_accessible = false
+  multi_az            = false
+
+  username = "postgres"
+  password = random_password.app_db_password.result
+  db_name  = "postgres"
+
   db_subnet_group_name   = aws_db_subnet_group.app_db_subnet_group.name
   vpc_security_group_ids = [aws_security_group.app_db_sg.id]
 
