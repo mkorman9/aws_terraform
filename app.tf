@@ -347,7 +347,7 @@ resource "aws_ecs_task_definition" "app_task_definition" {
         },
         {
           name  = "PROFILE"
-          value = var.app_profile
+          value = var.profile
         },
         {
           name  = "SERVER_HOST"
