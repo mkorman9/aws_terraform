@@ -49,7 +49,14 @@ resource "aws_security_group" "app_db_sg" {
     from_port = 5432
     to_port   = 5432
     protocol  = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [aws_security_group.task_sg.id]
+  }
+
+  ingress {
+    from_port = 5432
+    to_port   = 5432
+    protocol  = "tcp"
+    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   egress {
