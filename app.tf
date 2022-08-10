@@ -391,6 +391,11 @@ resource "aws_ecs_service" "app_service" {
 
   ordered_placement_strategy {
     type  = "spread"
+    field = "attribute:ecs.availability-zone"
+  }
+
+  ordered_placement_strategy {
+    type  = "spread"
     field = "instanceId"
   }
 
