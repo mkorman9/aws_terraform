@@ -188,6 +188,10 @@ resource "aws_lb_target_group" "app_target_group" {
 }
 
 resource "aws_lb_listener_rule" "app_listener_rule_443" {
+  depends_on = [
+    aws_lb_target_group.app_target_group
+  ]
+
   listener_arn = aws_lb_listener.app_load_balancer_listener_443.arn
 
   action {
@@ -210,6 +214,10 @@ resource "aws_cloudwatch_log_group" "app_log_group" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "app_cpu_high" {
+  depends_on = [
+    aws_ecs_service.app_service
+  ]
+
   alarm_name          = "${var.environment}-app-cpu-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "3"
@@ -232,6 +240,10 @@ resource "aws_cloudwatch_metric_alarm" "app_cpu_high" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "app_cpu_low" {
+  depends_on = [
+    aws_ecs_service.app_service
+  ]
+
   alarm_name          = "${var.environment}-app-cpu-low"
   comparison_operator = "LessThanOrEqualToThreshold"
   evaluation_periods  = "3"
@@ -254,8 +266,11 @@ resource "aws_cloudwatch_metric_alarm" "app_cpu_low" {
 }
 
 resource "aws_appautoscaling_policy" "app_scale_up_policy" {
+  depends_on = [
+    aws_appautoscaling_target.app_scale_target
+  ]
+
   name               = "${var.environment}-app-scale-up-policy"
-  depends_on         = [aws_appautoscaling_target.app_scale_target]
   service_namespace  = "ecs"
   resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
@@ -273,8 +288,11 @@ resource "aws_appautoscaling_policy" "app_scale_up_policy" {
 }
 
 resource "aws_appautoscaling_policy" "app_scale_down_policy" {
+  depends_on = [
+    aws_appautoscaling_target.app_scale_target
+  ]
+
   name               = "${var.environment}-app-scale-down-policy"
-  depends_on         = [aws_appautoscaling_target.app_scale_target]
   service_namespace  = "ecs"
   resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
@@ -292,6 +310,10 @@ resource "aws_appautoscaling_policy" "app_scale_down_policy" {
 }
 
 resource "aws_appautoscaling_target" "app_scale_target" {
+  depends_on = [
+    aws_ecs_service.app_service
+  ]
+
   service_namespace  = "ecs"
   resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
