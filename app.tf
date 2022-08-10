@@ -1,44 +1,5 @@
 locals {
-    cluster_name = "${var.environment}-cluster"
-    service_name = "${var.environment}-app"
-}
-
-data "aws_vpc" "vpc" {
-  filter {
-    name = "tag:Environment"
-    values = [var.environment]
-  }
-}
-
-data "aws_subnets" "subnets" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.vpc.id]
-  }
-}
-
-data "aws_ecs_cluster" "cluster" {
-  cluster_name = local.cluster_name
-}
-
-data "aws_lb" "load_balancer" {
-  name = "${var.environment}-lb"
-  tags = {
-    Environment = var.environment
-  }
-}
-
-data "aws_lb_listener" "load_balancer_listener_443" {
-  load_balancer_arn = data.aws_lb.load_balancer.arn
-  port = 443
-}
-
-data "aws_iam_role" "task_execution_role" {
-  name = "${var.environment}-task-execution-role"
-}
-
-data "aws_security_group" "task_sg" {
-  name = "${var.environment}-task-sg"
+    app_service_name = "${var.environment}-app"
 }
 
 /*
@@ -66,23 +27,23 @@ resource "aws_iam_role_policy" "app_role_policy" {
 /*
     RDS
 */
-resource "random_password" "db_password" {
+resource "random_password" "app_db_password" {
   length  = 32
   special = false
 }
 
-resource "aws_db_subnet_group" "db_subnet_group" {
-  name       =  "${var.environment}-db-subnet-group"
-  subnet_ids = data.aws_subnets.subnets.ids
+resource "aws_db_subnet_group" "app_db_subnet_group" {
+  name       =  "${var.environment}-app-db-subnet-group"
+  subnet_ids = module.vpc.public_subnets
 
   tags = {
     Environment = var.environment
   }
 }
 
-resource "aws_security_group" "db_sg" {
-  name   = "${var.environment}-db-sg"
-  vpc_id = data.aws_vpc.vpc.id
+resource "aws_security_group" "app_db_sg" {
+  name   = "${var.environment}-app-db-sg"
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     from_port = 5432
@@ -103,17 +64,17 @@ resource "aws_security_group" "db_sg" {
   }
 }
 
-resource "aws_db_instance" "db" {
+resource "aws_db_instance" "app_db" {
   allocated_storage      = 10
   engine                 = "postgres"
   engine_version         = "13.4"
-  instance_class         = var.db_instance_class
+  instance_class         = var.app_db_instance_class
   username               = "postgres"
-  password               = random_password.db_password.result
+  password               = random_password.app_db_password.result
   db_name                = "postgres"
   skip_final_snapshot    = true
-  db_subnet_group_name   = aws_db_subnet_group.db_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.db_sg.id]
+  db_subnet_group_name   = aws_db_subnet_group.app_db_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.app_db_sg.id]
 
   tags = {
     Environment = var.environment
@@ -123,30 +84,96 @@ resource "aws_db_instance" "db" {
 /*
     Secrets Manager
 */
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name = "${var.environment}-secret-db-credentials"
+resource "aws_secretsmanager_secret" "app_db_credentials" {
+  name = "${var.environment}-app-rds-credentials"
 }
 
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id     = aws_secretsmanager_secret.db_credentials.id
+resource "aws_secretsmanager_secret_version" "app_db_credentials" {
+  secret_id     = aws_secretsmanager_secret.app_db_credentials.id
   secret_string = jsonencode({
-    username = aws_db_instance.db.username
-    password = aws_db_instance.db.password
-    database = aws_db_instance.db.db_name
-    host = aws_db_instance.db.address
-    port = aws_db_instance.db.port
+    username = aws_db_instance.app_db.username
+    password = aws_db_instance.app_db.password
+    database = aws_db_instance.app_db.db_name
+    host = aws_db_instance.app_db.address
+    port = aws_db_instance.app_db.port
   })
+}
+
+/*
+  ACM
+*/
+resource "aws_acm_certificate" "app_cert" {
+  domain_name       = var.app_domain
+  validation_method = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Environment = var.environment
+  }
 }
 
 /*
   EC2
 */
-resource "aws_lb_target_group" "target_group" {
+resource "aws_lb" "app_load_balancer" {
+  name               = "${var.environment}-app-lb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.load_balancer_sg.id]
+  subnets            = module.vpc.public_subnets
+
+  tags = {
+    Environment = var.environment
+  }
+}
+
+resource "aws_lb_listener" "app_load_balancer_listener_80" {
+  load_balancer_arn = aws_lb.app_load_balancer.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      status_code  = "HTTP_301"
+      protocol     = "HTTPS"
+      port         = "443"
+    }
+  }
+}
+
+resource "aws_lb_listener" "app_load_balancer_listener_443" {
+  load_balancer_arn = aws_lb.app_load_balancer.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.app_cert.arn
+
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      status_code  = "404"
+      content_type = "application/json"
+      message_body = jsonencode({
+        status = "error"
+        message = "not found"
+      })
+    }
+  }
+}
+
+
+resource "aws_lb_target_group" "app_target_group" {
   name        = "${var.environment}-app-target-group"
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"
-  vpc_id      = data.aws_vpc.vpc.id
+  vpc_id      = module.vpc.vpc_id
 
   health_check {
     enabled  = true
@@ -160,12 +187,12 @@ resource "aws_lb_target_group" "target_group" {
   }
 }
 
-resource "aws_lb_listener_rule" "listener_rule_443" {
-  listener_arn = data.aws_lb_listener.load_balancer_listener_443.arn
+resource "aws_lb_listener_rule" "app_listener_rule_443" {
+  listener_arn = aws_lb_listener.app_load_balancer_listener_443.arn
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.target_group.arn
+    target_group_arn = aws_lb_target_group.app_target_group.arn
   }
 
   condition {
@@ -178,11 +205,11 @@ resource "aws_lb_listener_rule" "listener_rule_443" {
 /*
     CloudWatch
 */
-resource "aws_cloudwatch_log_group" "log_group" {
+resource "aws_cloudwatch_log_group" "app_log_group" {
   name = "/${var.environment}-logs/app"
 }
 
-resource "aws_cloudwatch_metric_alarm" "cpu_high" {
+resource "aws_cloudwatch_metric_alarm" "app_cpu_high" {
   alarm_name          = "${var.environment}-app-cpu-high"
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = "3"
@@ -194,17 +221,17 @@ resource "aws_cloudwatch_metric_alarm" "cpu_high" {
 
   dimensions = {
     ClusterName = local.cluster_name
-    ServiceName = local.service_name
+    ServiceName = local.app_service_name
   }
 
-  alarm_actions = [aws_appautoscaling_policy.scale_up_policy.arn]
+  alarm_actions = [aws_appautoscaling_policy.app_scale_up_policy.arn]
 
   tags = {
     Environment = var.environment
   }
 }
 
-resource "aws_cloudwatch_metric_alarm" "cpu_low" {
+resource "aws_cloudwatch_metric_alarm" "app_cpu_low" {
   alarm_name          = "${var.environment}-app-cpu-low"
   comparison_operator = "LessThanOrEqualToThreshold"
   evaluation_periods  = "3"
@@ -216,21 +243,21 @@ resource "aws_cloudwatch_metric_alarm" "cpu_low" {
 
   dimensions = {
     ClusterName = local.cluster_name
-    ServiceName = local.service_name
+    ServiceName = local.app_service_name
   }
 
-  alarm_actions = [aws_appautoscaling_policy.scale_down_policy.arn]
+  alarm_actions = [aws_appautoscaling_policy.app_scale_down_policy.arn]
 
   tags = {
     Environment = var.environment
   }
 }
 
-resource "aws_appautoscaling_policy" "scale_up_policy" {
+resource "aws_appautoscaling_policy" "app_scale_up_policy" {
   name               = "${var.environment}-app-scale-up-policy"
-  depends_on         = [aws_appautoscaling_target.scale_target]
+  depends_on         = [aws_appautoscaling_target.app_scale_target]
   service_namespace  = "ecs"
-  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
 
   step_scaling_policy_configuration {
@@ -245,11 +272,11 @@ resource "aws_appautoscaling_policy" "scale_up_policy" {
   }
 }
 
-resource "aws_appautoscaling_policy" "scale_down_policy" {
+resource "aws_appautoscaling_policy" "app_scale_down_policy" {
   name               = "${var.environment}-app-scale-down-policy"
-  depends_on         = [aws_appautoscaling_target.scale_target]
+  depends_on         = [aws_appautoscaling_target.app_scale_target]
   service_namespace  = "ecs"
-  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
 
   step_scaling_policy_configuration {
@@ -264,32 +291,32 @@ resource "aws_appautoscaling_policy" "scale_down_policy" {
   }
 }
 
-resource "aws_appautoscaling_target" "scale_target" {
+resource "aws_appautoscaling_target" "app_scale_target" {
   service_namespace  = "ecs"
-  resource_id        = "service/${local.cluster_name}/${local.service_name}"
+  resource_id        = "service/${local.cluster_name}/${local.app_service_name}"
   scalable_dimension = "ecs:service:DesiredCount"
-  min_capacity       = var.min_instances
-  max_capacity       = var.max_instances
+  min_capacity       = var.app_min_instances
+  max_capacity       = var.app_max_instances
 }
 
 /*
     ECS
 */
-resource "aws_ecs_task_definition" "task_definition" {
+resource "aws_ecs_task_definition" "app_task_definition" {
   family                   = "${var.environment}-app"
   requires_compatibilities = ["EC2"]
   network_mode             = "awsvpc"
-  memory                   = var.memory
+  memory                   = 300
 
   task_role_arn      = aws_iam_role.app_role.arn
-  execution_role_arn = data.aws_iam_role.task_execution_role.arn
+  execution_role_arn = aws_iam_role.task_execution_role.arn
 
   container_definitions = jsonencode([
     {
       name      = "app"
-      image     = var.image
+      image     = var.app_image
       essential = true
-      memory    = var.memory
+      memory    = 300
 
       portMappings = [
         {
@@ -300,7 +327,7 @@ resource "aws_ecs_task_definition" "task_definition" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group  = aws_cloudwatch_log_group.log_group.name
+          awslogs-group  = aws_cloudwatch_log_group.app_log_group.name
           awslogs-region = var.aws_region
         }
       }
@@ -320,7 +347,7 @@ resource "aws_ecs_task_definition" "task_definition" {
         },
         {
           name  = "PROFILE"
-          value = var.profile
+          value = var.app_profile
         },
         {
           name  = "SERVER_HOST"
@@ -336,31 +363,31 @@ resource "aws_ecs_task_definition" "task_definition" {
         },
         {
           name  = "DB_URI"
-          value = "jdbc:postgresql://${aws_db_instance.db.address}:${aws_db_instance.db.port}/${aws_db_instance.db.db_name}"
+          value = "jdbc:postgresql://${aws_db_instance.app_db.address}:${aws_db_instance.app_db.port}/${aws_db_instance.app_db.db_name}"
         }
       ]
       secrets = [
         {
           name      = "DB_USER"
-          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:username::"
+          valueFrom = "${aws_secretsmanager_secret.app_db_credentials.arn}:username::"
         },
         {
           name      = "DB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.db_credentials.arn}:password::"
+          valueFrom = "${aws_secretsmanager_secret.app_db_credentials.arn}:password::"
         }
       ]
     }
   ])
 }
 
-resource "aws_ecs_service" "service" {
-  name                = local.service_name
-  cluster             = data.aws_ecs_cluster.cluster.id
-  task_definition     = aws_ecs_task_definition.task_definition.arn
+resource "aws_ecs_service" "app_service" {
+  name                = local.app_service_name
+  cluster             = aws_ecs_cluster.cluster.id
+  task_definition     = aws_ecs_task_definition.app_task_definition.arn
   launch_type         = "EC2"
   scheduling_strategy = "REPLICA"
 
-  desired_count                      = var.desired_instances
+  desired_count                      = var.app_desired_instances
   deployment_minimum_healthy_percent = 50
 
   ordered_placement_strategy {
@@ -369,14 +396,14 @@ resource "aws_ecs_service" "service" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.target_group.id
+    target_group_arn = aws_lb_target_group.app_target_group.id
     container_name   = "app"
     container_port   = 8080
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.subnets.ids
-    security_groups  = [data.aws_security_group.task_sg.id]
+    subnets          = module.vpc.public_subnets
+    security_groups  = [aws_security_group.task_sg.id]
     assign_public_ip = false
   }
 
