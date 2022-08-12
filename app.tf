@@ -184,7 +184,7 @@ resource "aws_lb_target_group" "app_target_group" {
   name        = "${var.environment}-app-target-group"
   port        = 80
   protocol    = "HTTP"
-  target_type = "ip"
+  target_type = "instance"
   vpc_id      = module.vpc.vpc_id
 
   health_check {
@@ -339,7 +339,7 @@ resource "aws_appautoscaling_target" "app_scale_target" {
 resource "aws_ecs_task_definition" "app_task_definition" {
   family                   = "${var.environment}-app"
   requires_compatibilities = ["EC2"]
-  network_mode             = "awsvpc"
+  network_mode             = "bridge"
   memory                   = 300
 
   task_role_arn      = aws_iam_role.app_role.arn
@@ -438,12 +438,6 @@ resource "aws_ecs_service" "app_service" {
     target_group_arn = aws_lb_target_group.app_target_group.id
     container_name   = "app"
     container_port   = 8080
-  }
-
-  network_configuration {
-    subnets          = module.vpc.public_subnets
-    security_groups  = [aws_security_group.task_sg.id]
-    assign_public_ip = false
   }
 
   tags = {
