@@ -61,6 +61,20 @@ resource "aws_security_group" "instance_sg" {
   name   = "${var.environment}-instance-sg"
   vpc_id = module.vpc.vpc_id
 
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    security_groups = [aws_security_group.load_balancer_sg.id]
+  }
+
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    security_groups = [aws_security_group.bastion_sg.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -82,36 +96,6 @@ resource "aws_security_group" "bastion_sg" {
     to_port   = 22
     protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-resource "aws_security_group" "task_sg" {
-  name   = "${var.environment}-task-sg"
-  vpc_id = module.vpc.vpc_id
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    security_groups = [aws_security_group.load_balancer_sg.id]
-  }
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    security_groups = [aws_security_group.bastion_sg.id]
   }
 
   egress {
