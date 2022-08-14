@@ -179,7 +179,6 @@ resource "aws_lb_listener" "app_load_balancer_listener_443" {
   }
 }
 
-
 resource "aws_lb_target_group" "app_target_group" {
   name        = "${var.environment}-app-target-group"
   port        = 80
