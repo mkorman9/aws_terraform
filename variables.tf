@@ -47,9 +47,8 @@ variable "app_db_instance_class" {
 }
 
 variable "app_image" {
-  description = "URL of Docker image (default: 778189968080.dkr.ecr.eu-central-1.amazonaws.com/kotlin-vertx:1)"
+  description = "URL of Docker image"
   type        = string
-  default     = "778189968080.dkr.ecr.eu-central-1.amazonaws.com/kotlin-vertx:1"
 }
 
 variable "app_desired_instances" {
