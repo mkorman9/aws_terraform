@@ -7,8 +7,7 @@ min_instances     = 1
 max_instances     = 1
 desired_instances = 1
 
-app_image             = "778189968080.dkr.ecr.eu-central-1.amazonaws.com/kotlin-vertx:1"
-app_db_instance_class = "db.t3.micro"
+app_image             = "778189968080.dkr.ecr.eu-central-1.amazonaws.com/go-commons:latest"
 app_min_instances     = 1
 app_max_instances     = 1
 app_desired_instances = 1

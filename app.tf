@@ -25,93 +25,6 @@ resource "aws_iam_role_policy" "app_role_policy" {
 }
 
 /*
-    RDS
-*/
-resource "random_password" "app_db_password" {
-  length  = 32
-  special = false
-}
-
-resource "aws_db_subnet_group" "app_db_subnet_group" {
-  name       =  "${var.environment}-app-db-subnet-group"
-  subnet_ids = module.vpc.public_subnets
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-resource "aws_security_group" "app_db_sg" {
-  name   = "${var.environment}-app-db-sg"
-  vpc_id = module.vpc.vpc_id
-
-  ingress {
-    from_port = 5432
-    to_port   = 5432
-    protocol  = "tcp"
-    security_groups = [aws_security_group.instance_sg.id]
-  }
-
-  ingress {
-    from_port = 5432
-    to_port   = 5432
-    protocol  = "tcp"
-    security_groups = [aws_security_group.bastion_sg.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-resource "aws_db_instance" "app_db" {
-  identifier          = "${var.environment}-app-db"
-  allocated_storage   = 10
-  engine              = "postgres"
-  engine_version      = "13.4"
-  instance_class      = var.app_db_instance_class
-  skip_final_snapshot = true
-  publicly_accessible = false
-  multi_az            = false
-
-  username = "postgres"
-  password = random_password.app_db_password.result
-  db_name  = "postgres"
-
-  db_subnet_group_name   = aws_db_subnet_group.app_db_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.app_db_sg.id]
-
-  tags = {
-    Environment = var.environment
-  }
-}
-
-/*
-    Secrets Manager
-*/
-resource "aws_secretsmanager_secret" "app_db_credentials" {
-  name = "${var.environment}-app-rds-credentials"
-}
-
-resource "aws_secretsmanager_secret_version" "app_db_credentials" {
-  secret_id     = aws_secretsmanager_secret.app_db_credentials.id
-  secret_string = jsonencode({
-    username = aws_db_instance.app_db.username
-    password = aws_db_instance.app_db.password
-    database = aws_db_instance.app_db.db_name
-    host = aws_db_instance.app_db.address
-    port = aws_db_instance.app_db.port
-  })
-}
-
-/*
   ACM
 */
 resource "aws_acm_certificate" "app_cert" {
@@ -364,17 +277,9 @@ resource "aws_ecs_task_definition" "app_task_definition" {
         }
       }
 
-      healthCheck = {
-        command     = ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-        interval    = 30
-        timeout     = 5
-        retries     = 3
-        startPeriod = 30
-      }
-
       environment = [
         {
-         name  = "ENVIRONMENT_NAME"
+         name  = "DEPLOYMENT_NAME"
          value = var.environment
         },
         {
@@ -382,30 +287,12 @@ resource "aws_ecs_task_definition" "app_task_definition" {
           value = var.profile
         },
         {
-          name  = "SERVER_HOST"
-          value = "0.0.0.0"
+          name  = "AWS_REGION"
+          value = var.aws_region
         },
         {
-          name  = "SERVER_PORT"
-          value = "8080"
-        },
-        {
-          name = "SERVER_SECURITY_HEADERS",
-          value = "true"
-        },
-        {
-          name  = "DB_URI"
-          value = "jdbc:postgresql://${aws_db_instance.app_db.address}:${aws_db_instance.app_db.port}/${aws_db_instance.app_db.db_name}"
-        }
-      ]
-      secrets = [
-        {
-          name      = "DB_USER"
-          valueFrom = "${aws_secretsmanager_secret.app_db_credentials.arn}:username::"
-        },
-        {
-          name      = "DB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.app_db_credentials.arn}:password::"
+          name = "LOGGING_CONSOLE_COLORS",
+          valeu = "false"
         }
       ]
     }
