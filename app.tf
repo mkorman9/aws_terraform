@@ -279,7 +279,7 @@ resource "aws_ecs_task_definition" "app_task_definition" {
 
       environment = [
         {
-         name  = "DEPLOYMENT_NAME"
+         name  = "ENVIRONMENT"
          value = var.environment
         },
         {
