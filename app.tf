@@ -279,8 +279,8 @@ resource "aws_ecs_task_definition" "app_task_definition" {
 
       environment = [
         {
-         name  = "ENVIRONMENT"
-         value = var.environment
+          name  = "ENVIRONMENT"
+          value = var.environment
         },
         {
           name  = "PROFILE"
@@ -289,10 +289,6 @@ resource "aws_ecs_task_definition" "app_task_definition" {
         {
           name  = "AWS_REGION"
           value = var.aws_region
-        },
-        {
-          name = "LOGGING_CONSOLE_COLORS",
-          valeu = "false"
         }
       ]
     }
