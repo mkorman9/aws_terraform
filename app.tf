@@ -40,6 +40,15 @@ resource "aws_acm_certificate" "app_cert" {
   }
 }
 
+// OR
+/*
+data "aws_acm_certificate" "amazon_issued" {
+  domain      = var.app_domain
+  types       = ["AMAZON_ISSUED"]
+  most_recent = true
+}
+*/
+
 /*
   EC2
 */
