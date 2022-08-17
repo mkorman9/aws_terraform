@@ -292,10 +292,6 @@ resource "aws_ecs_task_definition" "app_task_definition" {
           value = var.environment
         },
         {
-          name  = "PROFILE"
-          value = var.profile
-        },
-        {
           name  = "AWS_REGION"
           value = var.aws_region
         }
