@@ -3,13 +3,6 @@ variable "environment" {
   type        = string
 }
 
-variable "profile" {
-  description = "Profile of the environment - dev/test/prd (by default: prd)"
-  type        = string
-  default     = "prd"
-}
-
-
 variable "aws_region" {
   description = "AWS region. For example: eu-central-1"
   type        = string

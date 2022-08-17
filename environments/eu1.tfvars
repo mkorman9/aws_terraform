@@ -1,5 +1,4 @@
 environment = "eu1"
-profile     = "prd"
 aws_region  = "eu-central-1"
 
 instance_type     = "t2.micro"
