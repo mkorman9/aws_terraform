@@ -197,7 +197,6 @@ data "template_file" "instance_user_data" {
 }
 
 resource "aws_launch_configuration" "launch_configuration" {
-  name            = "${var.environment}-launch-config"
   security_groups = [aws_security_group.instance_sg.id]
   image_id        = data.aws_ami.optimized_ecs_ami.id
 
