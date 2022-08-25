@@ -192,7 +192,6 @@ data "template_file" "instance_user_data" {
 
   vars = {
     ecs_cluster_name = local.cluster_name
-    instance_class   = "general-purpose"
   }
 }
 
