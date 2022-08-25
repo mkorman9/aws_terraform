@@ -192,12 +192,10 @@ data "template_file" "instance_user_data" {
 
   vars = {
     ecs_cluster_name = local.cluster_name
-    instance_class   = "general-purpose"
   }
 }
 
 resource "aws_launch_configuration" "launch_configuration" {
-  name            = "${var.environment}-launch-config"
   security_groups = [aws_security_group.instance_sg.id]
   image_id        = data.aws_ami.optimized_ecs_ami.id
 

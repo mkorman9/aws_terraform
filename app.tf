@@ -102,17 +102,18 @@ resource "aws_lb_listener" "app_load_balancer_listener_443" {
 }
 
 resource "aws_lb_target_group" "app_target_group" {
-  name        = "${var.environment}-app-target-group"
-  port        = 80
-  protocol    = "HTTP"
-  target_type = "instance"
-  vpc_id      = module.vpc.vpc_id
+  name             = "${var.environment}-app-target-group"
+  port             = 80
+  protocol         = "HTTP"
+  protocol_version = "GRPC"
+  target_type      = "instance"
+  vpc_id           = module.vpc.vpc_id
 
   health_check {
     enabled  = true
     protocol = "HTTP"
-    path     = "/health"
-    matcher  = "200"
+    path     = "/AWS.ALB/healthcheck"
+    matcher  = "12"
   }
 
   tags = {
@@ -134,7 +135,7 @@ resource "aws_lb_listener_rule" "app_listener_rule_443" {
 
   condition {
     path_pattern {
-      values = ["/api/*"]
+      values = ["/*"]
     }
   }
 }
@@ -274,7 +275,7 @@ resource "aws_ecs_task_definition" "app_task_definition" {
 
       portMappings = [
         {
-          containerPort = 8080
+          containerPort = 9000
         }
       ]
 
@@ -324,7 +325,7 @@ resource "aws_ecs_service" "app_service" {
   load_balancer {
     target_group_arn = aws_lb_target_group.app_target_group.id
     container_name   = "app"
-    container_port   = 8080
+    container_port   = 9000
   }
 
   tags = {
